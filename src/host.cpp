@@ -27,53 +27,54 @@
 #include "../global_params.hpp"
 #include "../configs/config_000.hpp" // config_000.hpp is overwritten with the configuration you select
 
-//#define DATA_SIZE 4096
-
 int main(int argc, char** argv) {
-    // Command Line Parser
-    sda::utils::CmdLineParser parser;
-
-    // Switches
-    //**************//"<Full Arg>",  "<Short Arg>", "<Description>", "<Default>"
-    parser.addSwitch("--xclbin_file", "-x", "input binary file string", "");
-    parser.addSwitch("--device_id", "-d", "device index", "0");
-    parser.parse(argc, argv);
-
-    // Read settings
-    std::string binaryFile = parser.value("xclbin_file");
-    //int device_index = stoi(parser.value("device_id"));
-
-    if (argc < 3) {
-        parser.printHelp();
-        return EXIT_FAILURE;
+    
+    // check on number of input parameters parameters
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <xclbin> <bdf>" << std::endl;
+        return 1;
     }
+
+    // read parameters
+    std::string binaryFile = argv[1];
+    std::string device_bdf = argv[2];
+
+    // check on xclbin
+    if (binaryFile.empty() == 0) {
+        std::cerr << "The <xclbin> must be provided and not empty." << std::endl;
+        return 1;
+    }
+
+    // xrt objects
+    xrt::device device;
+    std::string XCL_EMULATION_MODE="sw_emu";
+    std::string current_uuid_str="00000000-0000-0000-0000-000000000000";
+    std::string new_uuid_str="00000000-0000-0000-0000-000000000000";
 
     // print config values as a test
     std::cout << "\nN: ";
     std::cout << std::to_string(N);
-
-    //assign default (sw_emu)
-    //auto device = xrt::device(device_index);
-
-    // Declare the device outside the conditional blocks
-    xrt::device device;
-
-    //define defaults
-    std::string XCL_EMULATION_MODE="sw_emu";
-    std::string current_uuid_str="00000000-0000-0000-0000-000000000000";
-    std::string new_uuid_str="00000000-0000-0000-0000-000000000000";
     
-    //check on number arguments/target
-    if (argc >= 4 && argv[3] != nullptr && argv[3][0] != '\0') { 
-        //target is hw
-        std::string device_bdf = argv[3]; 
-        std::cout << "Opening the device: " << device_bdf << std::endl;
-        device = xrt::device(device_bdf);
-        XCL_EMULATION_MODE="hw";
-    } else {
-        //target is sw_emu or hw_emu
+    //check on target
+    if (device_bdf.empty() == 0) {
+        XCL_EMULATION_MODE="sw_emu";
         device = xrt::device(0);
+    } else {
+        XCL_EMULATION_MODE="hw";
+        device = xrt::device(device_bdf);
     }
+
+
+    //if (argc >= 4 && argv[3] != nullptr && argv[3][0] != '\0') { 
+    //    //target is hw
+    //    std::string device_bdf = argv[3]; 
+    //    std::cout << "Opening the device: " << device_bdf << std::endl;
+    //    device = xrt::device(device_bdf);
+    //    XCL_EMULATION_MODE="hw";
+    //} else {
+    //    //target is sw_emu or hw_emu
+    //    device = xrt::device(0);
+    //}
 
     //get new_uuid_str
     xrt::xclbin new_xclbin = xrt::xclbin(binaryFile);
